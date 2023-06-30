@@ -1,30 +1,59 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import "./index.scss";
 
 import { Button, DatePicker, Form, Input, Modal, Radio } from "antd";
-import { PlusOutlined, CloseCircleFilled } from "@ant-design/icons";
+import {
+  PlusOutlined,
+  CloseCircleFilled,
+  CloseCircleOutlined,
+} from "@ant-design/icons";
 import { useDispatch } from "react-redux";
+import {
+  addTaskAction,
+  editTaskAction,
+} from "../../redux/taskReducer/taskActions";
 
 export default function ModalAdd(props) {
   const [form] = Form.useForm();
   const [taskList, setTaskList] = useState([]);
   const [task, setTask] = useState([]);
   const dispatch = useDispatch();
+  const [valueList, setValueList] = useState("");
   const onFinish = (values) => {
-    const newTask = {
-      id: task.length,
-      title: values.title,
-      content: taskList,
-      status: values.status,
-      date: values.date,
-    };
+    if (props.selectedTask) {
+      const updatedTask = {
+        ...props.selectedTask,
+        title: values.title,
+        content: taskList,
+        status: values.status,
+        date: values.date,
+      };
+      setTask([{ ...updatedTask }]);
+      dispatch(editTaskAction(updatedTask));
+    } else {
+      const newTask = {
+        id: task.length,
+        title: values.title,
+        content: taskList,
+        status: values.status,
+        date: values.date,
+      };
+      setTask([...task, newTask]);
+      dispatch(addTaskAction(newTask));
+    }
     setTaskList([]);
-    setTask([...task, newTask]);
     form.resetFields();
-    dispatch({ type: "ADD_TASK", payload: newTask });
     props.handleCancel();
   };
+  useEffect(() => {
+    if (props.selectedTask) {
+      const { id, title, content, status, date } = props.selectedTask;
+      setTaskList(content);
+      setTask([{ id, title, status, date }]);
+      form.setFieldsValue({ title, status, date });
+    }
+  }, [props.selectedTask, form]);
   const addTask = async () => {
     try {
       await form.validateFields(["task"]);
@@ -32,9 +61,19 @@ export default function ModalAdd(props) {
       const taskValue = values.task;
       setTaskList([...taskList, taskValue]);
       form.resetFields(["task"]);
+      setValueList("");
     } catch (error) {
       console.error("Error adding task:", error);
     }
+  };
+  const handleCancel = () => {
+    setTaskList([]);
+    form.resetFields();
+    setValueList("");
+    props.handleCancel();
+  };
+  const handleChangeValueList = (e) => {
+    setValueList(e.target.value);
   };
   const removeTask = (index) => {
     const updatedListTask = [...taskList];
@@ -47,7 +86,7 @@ export default function ModalAdd(props) {
       footer={false}
       title="Add Task"
       open={props.isModalOpen}
-      onCancel={props.handleCancel}
+      closable={false}
     >
       <Form
         form={form}
@@ -59,27 +98,35 @@ export default function ModalAdd(props) {
           <Input placeholder="Enter title" />
         </Form.Item>
         <Form.Item name="task" label="Task">
-          <Input placeholder="Enter task" />
+          <Input placeholder="Enter task" onChange={handleChangeValueList} />
         </Form.Item>
-        {taskList.map((task, index) => (
-          <Form.Item
-            key={index}
-            label={`Task ${index + 1}`}
-            initialValue={task}
-            className="m-0 mb-2 add-task"
-          >
-            <div className="add-task flex items-center justify-between">
-              {task}
-              <Button
-                type="link"
-                onClick={() => removeTask(index)}
-                icon={<CloseCircleFilled />}
-              ></Button>
-            </div>
-          </Form.Item>
-        ))}
+        <div className=" max-h-20 overflow-y-scroll">
+          {taskList.map((task, index) => (
+            <Form.Item
+              key={index}
+              initialValue={task}
+              className="m-0 mb-2 add-task"
+            >
+              <div className="max-w-md add-task flex items-center justify-between">
+                Task {index + 1} : {task}
+                <Button
+                  className=" !w-auto"
+                  type="link"
+                  onClick={() => removeTask(index)}
+                  icon={<CloseCircleFilled />}
+                ></Button>
+              </div>
+            </Form.Item>
+          ))}
+        </div>
         <Form.Item>
-          <Button type="dashed" onClick={addTask} block icon={<PlusOutlined />}>
+          <Button
+            type="dashed"
+            disabled={valueList.length === 0 ? true : false}
+            onClick={addTask}
+            block
+            icon={<PlusOutlined />}
+          >
             Add task
           </Button>
         </Form.Item>
@@ -103,10 +150,17 @@ export default function ModalAdd(props) {
           </Button>
         </Form.Item>
       </Form>
+     
+        <div className="absolute top-2 right-2 ">
+          <CloseCircleOutlined onClick={handleCancel} className="text-2xl" />
+        </div>
+     
     </Modal>
   );
 }
 ModalAdd.propTypes = {
   isModalOpen: PropTypes.bool,
   handleCancel: PropTypes.func,
+  selectedTask: PropTypes.object,
+  close: PropTypes.bool,
 };

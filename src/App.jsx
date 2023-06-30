@@ -9,12 +9,13 @@ import {
 } from "@ant-design/icons";
 import ModalAdd from "./components/ModalAdd/ModalAdd";
 import { useDispatch, useSelector } from "react-redux";
+import { clearTaskAction } from "./redux/taskReducer/taskActions";
 
 export default function App() {
   const tasks = useSelector((state) => state.tasks);
   const dispatch = useDispatch();
   const clearTask = (index) => {
-    dispatch({ type: "CLEAR_TASK", payload: index });
+    dispatch(clearTaskAction(index));
   };
   console.log(tasks);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -23,6 +24,12 @@ export default function App() {
   };
   const handleCancel = () => {
     setIsModalOpen(false);
+    setSelectedTask(null);
+  };
+  const [selectedTask, setSelectedTask] = useState(null);
+  const editTask = (task) => {
+    setSelectedTask(task);
+    setIsModalOpen(true);
   };
   const currentDate = new Date();
   return (
@@ -49,7 +56,11 @@ export default function App() {
               >
                 <div className="text-red-600 font-medium">Clear</div>
               </Popconfirm>,
-              <div key="edit" className="text-blue-600 font-medium">
+              <div
+                key="edit"
+                onClick={() => editTask(item)}
+                className="text-blue-600 font-medium"
+              >
                 Edit
               </div>,
             ]}
@@ -101,7 +112,11 @@ export default function App() {
           icon={<PlusOutlined />}
         />
       </div>
-      <ModalAdd isModalOpen={isModalOpen} handleCancel={handleCancel} />
+      <ModalAdd
+        isModalOpen={isModalOpen}
+        handleCancel={handleCancel}
+        selectedTask={selectedTask}
+      />
     </div>
   );
 }
